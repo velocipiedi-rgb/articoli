@@ -1,0 +1,281 @@
+---
+interface Props {
+  activePage?: string;
+}
+
+const { activePage = 'cosa-facciamo' } = Astro.props;
+
+const navLinks = [
+  { text: "Articoli", href: "/articoli", key: "articoli" },
+  { text: "Chi siamo", href: "https://velocipiedi.it/chi-siamo", key: "chi-siamo" },
+  { text: "Contatti", href: "https://velocipiedi.it/contatti", key: "contatti" },
+  { text: "Sostienici", href: "https://velocipiedi.it/sostienici", key: "sostienici" },
+];
+---
+
+<header class="velocipiedi-navbar">
+  <div class="nav-container">
+    <!-- Logo Bianco Velocipiedi Ingrandito -->
+    <a href="/cosa-facciamo" class="brand-logo" aria-label="Velocipiedi Home">
+      <img
+        src="/images/Logo_White.svg"
+        alt="Velocipiedi"
+        class="logo-img"
+        loading="eager"
+      />
+    </a>
+
+    <!-- Menu Desktop-->
+    <nav class="desktop-nav" aria-label="Menu principale">
+      <ul class="nav-menu">
+        {navLinks.map((link) => (
+          <li>
+            <a href={link.href} class={activePage === link.key ? 'active-highlight' : ''}>
+              {link.text}
+            </a>
+          </li>
+        ))}
+        <li>
+          <a href="https://velocipiedi.it/tramsformami/" class="badge-tramsformami">
+            <span class="trams-bold">TRAM</span>sforma<span class="trams-bold">M</span>i
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Hamburger Toggle -->
+    <button class="nav-toggle" id="vel-nav-toggle" aria-label="Apri menu" aria-expanded="false">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+  </div>
+
+  <!-- Tendina Menu Mobile a scomparsa -->
+  <div class="mobile-menu" id="vel-mobile-menu">
+    <ul class="mobile-nav-list">
+      {navLinks.map((link) => (
+        <li>
+          <a href={link.href} class={activePage === link.key ? 'active-highlight' : ''}>
+            {link.text}
+          </a>
+        </li>
+      ))}
+      <li class="mobile-trams-wrap">
+        <a href="https://velocipiedi.it/tramsformami/" class="badge-tramsformami-mobile">
+          <span class="trams-bold">TRAM</span>sforma<span class="trams-bold">M</span>i
+        </a>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<style>
+  .velocipiedi-navbar {
+    background-color: #13004B;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .nav-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0.65rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  /* LOGO INGRANDITO */
+  .logo-img {
+    height: 54px;
+    width: auto;
+    max-width: 240px;
+    display: block;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .brand-logo:hover .logo-img {
+    opacity: 0.92;
+    transform: scale(1.02);
+  }
+
+  /* Desktop Menu */
+  .desktop-nav {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-menu {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    gap: 2rem;
+  }
+
+  .nav-menu a {
+    color: #ffffff;
+    font-family: var(--font-roboto, sans-serif);
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .nav-menu a:hover {
+    opacity: 0.85;
+  }
+
+  .active-highlight {
+    color: #C5F558 !important;
+  }
+
+  /* Badge Arancione TRAMsformaMi Desktop */
+  .badge-tramsformami {
+    background-color: #F5731D;
+    color: #ffffff !important;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    display: inline-block;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+
+  .badge-tramsformami:hover {
+    opacity: 0.95;
+    transform: translateY(-1px);
+  }
+
+  .trams-bold {
+    font-style: italic;
+    font-weight: 900;
+  }
+
+  /* Pulsante Hamburger Mobile */
+  .nav-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .nav-toggle .bar {
+    display: block;
+    width: 25px;
+    height: 3px;
+    background-color: #ffffff;
+    border-radius: 2px;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+  }
+
+  /* Animazione Hamburger -> X */
+  .nav-toggle.is-open .bar:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+  .nav-toggle.is-open .bar:nth-child(2) {
+    opacity: 0;
+  }
+  .nav-toggle.is-open .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  /* Menu Dropdown Mobile */
+  .mobile-menu {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    background-color: #10003F;
+    transition: max-height 0.3s ease, opacity 0.25s ease;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .mobile-menu.is-open {
+    max-height: 380px;
+    opacity: 1;
+  }
+
+  .mobile-nav-list {
+    list-style: none;
+    padding: 1rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .mobile-nav-list a {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: block;
+    padding: 8px 0;
+  }
+
+  .mobile-trams-wrap {
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .badge-tramsformami-mobile {
+    background-color: #F5731D;
+    color: #ffffff !important;
+    text-align: center;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+
+  /* Breakpoint Mobile */
+  @media (max-width: 900px) {
+    .desktop-nav {
+      display: none;
+    }
+    .nav-toggle {
+      display: flex;
+    }
+    .logo-img {
+      height: 50px;
+      max-width: 190px;
+    }
+  }
+</style>
+
+<script>
+  const toggleBtn = document.getElementById('vel-nav-toggle');
+  const menu = document.getElementById('vel-mobile-menu');
+
+  if (toggleBtn && menu) {
+    toggleBtn.addEventListener('click', () => {
+      const open = toggleBtn.classList.toggle('is-open');
+      menu.classList.toggle('is-open');
+      toggleBtn.setAttribute('aria-expanded', String(open));
+    });
+
+    // Chiude il menu al click su un link
+    menu.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        toggleBtn.classList.remove('is-open');
+        menu.classList.remove('is-open');
+        toggleBtn.setAttribute('aria-expanded', 'false');
+      });
+    });
+  }
+</script>

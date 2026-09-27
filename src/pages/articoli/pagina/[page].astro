@@ -1,0 +1,109 @@
+---
+import VelocipiediLayout from '../../../layouts/VelocipiediLayout.astro';
+import ArticleCard from '../../../components/ArticleCard.astro';
+import { fetchSubstackArticles, SUBSTACK_FEED_URL } from '../../../utils/substack';
+
+export async function getStaticPaths({ paginate }: any) {
+  const articles = await fetchSubstackArticles();
+  const paginatedRoutes = paginate(articles, { pageSize: 6 });
+  
+  // Esclude la pagina 1: la pagina 1 risponde solo a /articoli
+  return paginatedRoutes.filter((r: any) => r.params.page !== "1" && r.params.page !== 1);
+}
+
+const { page } = Astro.props;
+const articles = page.data;
+
+// Se torniamo indietro dalla pagina 2, andiamo su /articoli
+const prevUrl = page.currentPage === 2 ? "/articoli" : `/articoli/pagina/${page.currentPage - 1}`;
+const nextUrl = page.currentPage < page.lastPage ? `/articoli/pagina/${page.currentPage + 1}` : null;
+---
+
+<VelocipiediLayout 
+  title={`Articoli e Inchieste - Pagina ${page.currentPage} di ${page.lastPage} - Velocipiedi`}
+  description={`Archivio articoli di Velocipiedi - Pagina ${page.currentPage}. Inchieste e approfondimenti sulla mobilità urbana.`}
+  activePage="articoli"
+>
+  <main class="split-layout">
+    <section class="col-left">
+      <div class="col-left-inner">
+        
+        <div class="search-bar-row">
+          <div class="search-input-box">
+            <input type="text" id="search-input" placeholder="Cerca tra gli articoli..." autocomplete="off" />
+            <span class="search-icon">🔍</span>
+          </div>
+        </div>
+
+        <div class="articles-grid" id="articles-container">
+          {articles.map((article: any) => (
+            <div class="searchable-card" data-title={article.title.toLowerCase()}>
+              <ArticleCard article={article} />
+            </div>
+          ))}
+        </div>
+
+        <!-- Pagination -->
+        <nav class="pagination-nav" aria-label="Navigazione pagine">
+          <a href={prevUrl} class="page-btn">← Precedente</a>
+          
+          <span class="page-status">
+            Pagina <strong>{page.currentPage}</strong> di <strong>{page.lastPage}</strong>
+          </span>
+
+          {nextUrl ? (
+            <a href={nextUrl} class="page-btn">Successivo →</a>
+          ) : (
+            <span class="page-btn disabled">Successivo →</span>
+          )}
+        </nav>
+
+      </div>
+    </section>
+
+    <section class="col-right">
+      <div class="col-right-inner">
+        <div class="subscribe-card">
+          <span class="badge-tag">Newsletter</span>
+          <h2>Leggi Velocipiedi su Substack</h2>
+          <p>
+            Iscriviti per ricevere direttamente via email le nostre inchieste e novità sulla mobilità sostenibile.
+          </p>
+          <a href={SUBSTACK_FEED_URL.replace('/feed', '')} target="_blank" rel="noopener noreferrer" class="btn-subscribe">
+            Iscriviti su Substack ✉️
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+</VelocipiediLayout>
+
+<style>
+  .split-layout { display: flex; flex: 1; }
+  .col-left { background-color: #FEFADE; flex: 1.35; padding: 2.5rem 3rem 4rem; }
+  .col-left-inner { max-width: 860px; margin-left: auto; }
+  .col-right { background-color: #E2D4B5; flex: 0.85; padding: 2.5rem 3rem 4rem; }
+  .col-right-inner { max-width: 420px; margin-right: auto; padding-top: 1rem; }
+  .articles-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+
+  .search-bar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; }
+  .search-input-box { display: flex; align-items: center; background-color: #E5D6B6; border-radius: 12px; padding: 8px 16px; width: 320px; }
+  .search-input-box input { background: transparent; border: none; outline: none; font-size: 1.05rem; color: #1a1a1a; width: 100%; }
+
+  .pagination-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid rgba(0, 0, 0, 0.06); }
+  .page-btn { background-color: #13004B; color: #ffffff; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; text-decoration: none; }
+  .page-btn.disabled { background-color: #d1c8b4; color: #7a7364; cursor: not-allowed; }
+  .page-status { font-size: 0.95rem; color: #444; }
+
+  .subscribe-card { background: #ffffff; border-radius: 18px; padding: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 0.75rem; }
+  .badge-tag { background-color: #C5F558; color: #13004B; font-weight: 700; font-size: 0.75rem; border-radius: 6px; padding: 3px 8px; align-self: flex-start; }
+  .btn-subscribe { background-color: #FF6719; color: #ffffff; font-weight: 700; padding: 12px 20px; border-radius: 10px; text-decoration: none; text-align: center; }
+
+  @media (max-width: 1024px) {
+    .split-layout { flex-direction: column; }
+    .col-left, .col-right { width: 100%; padding: 2rem 1.5rem; }
+  }
+  @media (max-width: 640px) {
+    .articles-grid { grid-template-columns: 1fr; }
+  }
+</style>
