@@ -7,55 +7,72 @@ const PAGE_SIZE = 6;
 const allArticles = await fetchSubstackArticles();
 const articles = allArticles.slice(0, PAGE_SIZE);
 const totalPages = Math.ceil(allArticles.length / PAGE_SIZE);
+
+// Search index
+const searchIndex = allArticles.map((a) => ({
+  title: a.title,
+  slug: a.slug,
+  image: a.image,
+  formattedDate: a.formattedDate,
+  description: (a.description || '').replace(/<[^>]*>?/gm, '').slice(0, 120) + '...',
+}));
 ---
 
-<VelocipiediLayout 
-  title="Articoli, Inchieste e Newsletter - Velocipiedi" 
+<VelocipiediLayout
+  title="Articoli, Inchieste e Newsletter - Velocipiedi"
   description="Tutti i nostri approfondimenti scritti, inchieste e newsletter pubblicate su Substack."
   activePage="articoli"
 >
   <main class="split-layout">
-    
+
     <section class="col-left">
       <div class="col-left-inner">
-        
+
         <div class="search-bar-row">
           <div class="search-input-box">
-            <input type="text" id="search-input" placeholder="Cerca tra gli articoli..." autocomplete="off" />
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Cerca tra tutti gli articoli..."
+              autocomplete="off"
+            />
             <span class="search-icon">🔍</span>
           </div>
         </div>
 
-        <div class="info-popover" id="info-popover" style="display: none;">
-          Tutti i nostri approfondimenti scritti, inchieste e newsletter pubblicate su Substack.
+
+        <div id="paginated-view">
+          {articles.length === 0 ? (
+            <div class="empty-state"><p>Nessun articolo trovato.</p></div>
+          ) : (
+            <div class="articles-grid">
+              {articles.map((article) => (
+                <ArticleCard article={article} />
+              ))}
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <nav class="pagination-nav" aria-label="Navigazione pagine">
+              <span class="page-btn disabled">← Precedente</span>
+              <span class="page-status">Pagina <strong>1</strong> di <strong>{totalPages}</strong></span>
+              <a href="/articoli/pagina/2" class="page-btn">Successivo →</a>
+            </nav>
+          )}
         </div>
 
-        {articles.length === 0 ? (
-          <div class="empty-state">
-            <p>Nessun articolo trovato al momento.</p>
-          </div>
-        ) : (
-          <div class="articles-grid" id="articles-container">
-            {articles.map((article) => (
-              <div class="searchable-card" data-title={article.title.toLowerCase()}>
-                <ArticleCard article={article} />
-              </div>
-            ))}
-          </div>
-        )}
 
-        <!-- pagination-->
-        {totalPages > 1 && (
-          <nav class="pagination-nav" aria-label="Navigazione pagine">
-            <span class="page-btn disabled">← Precedente</span>
-            <span class="page-status">Pagina <strong>1</strong> di <strong>{totalPages}</strong></span>
-            <a href="/articoli/pagina/2" class="page-btn">Successivo →</a>
-          </nav>
-        )}
+        <div id="search-view" style="display: none;">
+          <div class="search-results-header">
+            <p id="search-status-text"></p>
+          </div>
+          <div class="articles-grid" id="search-results-grid"></div>
+        </div>
 
       </div>
     </section>
 
+    <!-- Sidebar Substack -->
     <section class="col-right">
       <div class="col-right-inner">
         <div class="subscribe-card">
@@ -74,6 +91,107 @@ const totalPages = Math.ceil(allArticles.length / PAGE_SIZE);
   </main>
 </VelocipiediLayout>
 
+<script>
+  let allArticles: any[] | null = null;
+  let isLoading = false;
+
+  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+  const paginatedView = document.getElementById('paginated-view');
+  const searchView = document.getElementById('search-view');
+  const resultsGrid = document.getElementById('search-results-grid');
+  const statusText = document.getElementById('search-status-text');
+
+  async function loadSearchIndex() {
+    if (allArticles || isLoading) return;
+    isLoading = true;
+    try {
+      const res = await fetch('/api/search.json');
+      if (res.ok) {
+        allArticles = await res.json();
+      }
+    } catch (err) {
+      console.error('Errore nel caricamento indice di ricerca:', err);
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function renderCard(article: any) {
+    return `
+      <article class="article-card">
+        <a href="/articoli/${article.slug}" class="card-link">
+          <div class="thumb-container">
+            <img src="${article.image}" alt="${article.title}" class="thumb-img" loading="lazy" />
+          </div>
+          <div class="card-content">
+            <div class="title-row">
+              <h3 class="post-title">${article.title}</h3>
+              <span class="post-date">${article.formattedDate}</span>
+            </div>
+            <div class="post-desc">${article.description}</div>
+            <div class="footer-row">
+              <span class="badge badge-substack">Articolo</span>
+              <span class="read-more">Leggi articolo →</span>
+            </div>
+          </div>
+        </a>
+      </article>
+    `;
+  }
+
+  async function handleSearch(query: string) {
+    const q = query.trim().toLowerCase();
+
+
+    if (q.length < 2) {
+      if (paginatedView) paginatedView.style.display = 'block';
+      if (searchView) searchView.style.display = 'none';
+      return;
+    }
+
+
+    if (!allArticles) {
+      await loadSearchIndex();
+    }
+
+    if (!allArticles) return;
+
+    if (paginatedView) paginatedView.style.display = 'none';
+    if (searchView) searchView.style.display = 'block';
+
+    const matches = allArticles.filter((a: any) =>
+      a.title.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)
+    );
+
+    if (statusText) {
+      statusText.innerHTML = matches.length > 0
+        ? `Trovati <strong>${matches.length}</strong> articoli per "<em>${query}</em>":`
+        : `Nessun articolo trovato per "<em>${query}</em>".`;
+    }
+
+    if (resultsGrid) {
+      resultsGrid.innerHTML = matches.map(renderCard).join('');
+    }
+  }
+
+  if (searchInput) {
+    // PRE-FETCH
+    searchInput.addEventListener('focus', loadSearchIndex);
+
+
+    searchInput.addEventListener('input', (e) => {
+      handleSearch((e.target as HTMLInputElement).value);
+    });
+
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialQuery = urlParams.get('q');
+    if (initialQuery) {
+      searchInput.value = initialQuery;
+      handleSearch(initialQuery);
+    }
+  }
+</script>
 <style>
   .split-layout { display: flex; flex: 1; }
   .col-left { background-color: #FEFADE; flex: 1.35; padding: 2.5rem 3rem 4rem; }
@@ -83,10 +201,10 @@ const totalPages = Math.ceil(allArticles.length / PAGE_SIZE);
   .articles-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem; }
 
   .search-bar-row { display: flex; align-items: center; gap: 14px; margin-bottom: 2rem; }
-  .search-input-box { display: flex; align-items: center; background-color: #E5D6B6; border-radius: 12px; padding: 8px 16px; width: 320px; }
+  .search-input-box { display: flex; align-items: center; background-color: #E5D6B6; border-radius: 12px; padding: 8px 16px; width: 340px; }
   .search-input-box input { background: transparent; border: none; outline: none; font-size: 1.05rem; color: #1a1a1a; width: 100%; }
-  .info-circle-btn { width: 34px; height: 34px; border-radius: 50%; border: 2px solid #1a1a1a; background: transparent; font-weight: 700; cursor: pointer; }
-  .info-popover { background: #ffffff; border-radius: 10px; padding: 12px 16px; font-size: 0.9rem; max-width: 380px; margin-bottom: 1.5rem; box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+
+  .search-results-header { margin-bottom: 1.5rem; font-size: 1.05rem; color: #333; }
 
   .pagination-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 3rem; padding-top: 1.5rem; border-top: 2px solid rgba(0, 0, 0, 0.06); }
   .page-btn { background-color: #13004B; color: #ffffff; padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; text-decoration: none; }
@@ -97,11 +215,30 @@ const totalPages = Math.ceil(allArticles.length / PAGE_SIZE);
   .badge-tag { background-color: #C5F558; color: #13004B; font-weight: 700; font-size: 0.75rem; border-radius: 6px; padding: 3px 8px; align-self: flex-start; }
   .btn-subscribe { background-color: #FF6719; color: #ffffff; font-weight: 700; padding: 12px 20px; border-radius: 10px; text-decoration: none; text-align: center; }
 
+  /* Stili per le card iniettate dinamicamente dalla ricerca */
+  :global(.article-card) {
+    background: #ffffff; border-radius: 18px; padding: 14px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06); transition: transform 0.2s ease; height: 100%;
+  }
+  :global(.article-card:hover) { transform: translateY(-3px); }
+  :global(.card-link) { text-decoration: none; color: inherit; display: flex; flex-direction: column; height: 100%; }
+  :global(.thumb-container) { width: 100%; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background-color: #f0ece1; }
+  :global(.thumb-img) { width: 100%; height: 100%; object-fit: cover; display: block; }
+  :global(.card-content) { padding-top: 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  :global(.title-row) { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  :global(.post-title) { font-size: 1.1rem; font-weight: 700; color: #1a1a1a; line-height: 1.3; }
+  :global(.post-date) { font-size: 0.78rem; color: #888888; white-space: nowrap; }
+  :global(.post-desc) { font-size: 0.92rem; line-height: 1.5; color: #555555; margin: 4px 0 8px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  :global(.footer-row) { margin-top: auto; display: flex; align-items: center; justify-content: space-between; padding-top: 6px; }
+  :global(.badge-substack) { background-color: #FF6719; color: #ffffff; font-size: 0.75rem; font-weight: 700; border-radius: 6px; padding: 3px 8px; }
+  :global(.read-more) { font-size: 0.85rem; font-weight: 700; color: #13004B; text-decoration: underline; }
+
   @media (max-width: 1024px) {
     .split-layout { flex-direction: column; }
     .col-left, .col-right { width: 100%; padding: 2rem 1.5rem; }
   }
   @media (max-width: 640px) {
     .articles-grid { grid-template-columns: 1fr; }
+    .search-input-box { width: 100%; }
   }
 </style>
