@@ -1,0 +1,41 @@
+---
+import ArticleCard from '../../components/ArticleCard.astro';
+import { fetchSubstackArticles } from '../../utils/substack';
+import '../../styles/global.css';
+
+const latestArticles = (await fetchSubstackArticles()).slice(0, 3);
+---
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anteprima Articoli - Velocipiedi</title>
+  <meta name="robots" content="noindex, nofollow" />
+  
+  <base target="_top" />
+</head>
+<body class="embed-body">
+  <div class="embed-grid">
+    {latestArticles.map((article) => (
+      <ArticleCard article={article} />
+    ))}
+  </div>
+</body>
+</html>
+
+<style>
+  .embed-body {
+    background-color: transparent;
+    margin: 0;
+    padding: 10px;
+    font-family: var(--font-roboto, sans-serif);
+  }
+
+  .embed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+</style>
