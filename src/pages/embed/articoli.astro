@@ -13,29 +13,75 @@ const latestArticles = (await fetchSubstackArticles()).slice(0, 3);
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Anteprima Articoli - Velocipiedi</title>
   <meta name="robots" content="noindex, nofollow" />
-  
   <base target="_top" />
 </head>
 <body class="embed-body">
   <div class="embed-grid">
     {latestArticles.map((article) => (
-      <ArticleCard article={article} />
+      <div class="card-wrapper">
+        <ArticleCard article={article} />
+      </div>
     ))}
   </div>
+
+  <script>
+    function updateParentHeight() {
+
+      const height = Math.ceil(document.documentElement.getBoundingClientRect().height);
+      window.parent.postMessage({ velEmbedHeight: height }, '*');
+    }
+
+
+    window.addEventListener('load', updateParentHeight);
+    window.addEventListener('resize', updateParentHeight);
+
+
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(updateParentHeight).observe(document.body);
+    }
+  </script>
 </body>
 </html>
 
 <style>
-  .embed-body {
-    background-color: transparent;
+  html, body {
     margin: 0;
-    padding: 10px;
-    font-family: var(--font-roboto, sans-serif);
+    padding: 0;
+    background-color: transparent !important;
+    overflow: hidden;
   }
 
+  .embed-body {
+    padding: 14px 12px 24px;
+    font-family: var(--font-roboto, sans-serif);
+    box-sizing: border-box;
+  }
+
+  /* Desktop */
   .embed-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  .card-wrapper {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Tablet e Mobile */
+  @media (max-width: 860px) {
+    .embed-grid {
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .embed-body {
+      padding: 10px 8px 18px;
+    }
   }
 </style>
